@@ -32,7 +32,25 @@ task run {
     }
 }
 
+task runWithPolicy {
+    doLast {
+        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} ${file("keep.policy").getAbsolutePath()}".execute()
+        proc.in.eachLine { println(it) }
+        proc.err.eachLine { println(it) }
+    }
+}
+
+task genPolicy {
+    doLast {
+        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} generatePolicy ${file("keep.policy").getAbsolutePath()}".execute()
+        proc.in.eachLine { println(it) }
+        proc.err.eachLine { println(it) }
+    }
+}
+
 run.dependsOn build
+runWithPolicy.dependsOn build
+genPolicy.dependsOn build
 
 jar {
     manifest {
@@ -69,8 +87,8 @@ publishing {
                 builtBy run
                 classifier = "v2"
             }
-            groupId "net.fabricmc"
-            artifactId "yarn"
+            groupId "me.shedaniel"
+            artifactId "legacy-yarn"
             version = project.version
         }
     }

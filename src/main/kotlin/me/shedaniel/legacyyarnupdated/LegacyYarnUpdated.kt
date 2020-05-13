@@ -15,10 +15,28 @@ lateinit var targetVersion: String
 lateinit var legacyVersion: String
 
 val tmp = File(System.getProperty("user.dir"), ".legacyyarnupdated")
+val toKeep = mutableListOf<String>()
+val policyWriter = mutableListOf<String>()
+val invalidCharacters = arrayOf(' ', '/', '<', ',', '.', '<', '>', ';', ';', '\'', '\"', '\\')
+val keepValidator: (String) -> Boolean = { it.none { it in invalidCharacters } }
+var generatePolicy by Delegates.notNull<Boolean>()
 
 fun main(args: Array<String>) {
     targetVersion = args[0]
     legacyVersion = args[1]
+    generatePolicy = args.size >= 4 && args[2] == "generatePolicy"
+    if (args.size >= 4) {
+        File(args.drop(if (generatePolicy) 3 else 2).joinToString(" ")).forEachLine { line ->
+            val keep = line.before('#').trimEnd()
+            if (!keep.isBlank()) {
+                if (!keepValidator(keep)) throw IllegalStateException("Invalid Line: $line")
+                toKeep.add(keep)
+                if (generatePolicy) {
+                    policyWriter.add(line)
+                }
+            }
+        }
+    }
     tmp.deleteRecursively()
     tmp.mkdirs()
     val targetYarnJarUrl = URL("https://maven.fabricmc.net/net/fabricmc/yarn/$targetVersion/yarn-$targetVersion-v2.jar")
@@ -59,8 +77,12 @@ fun main(args: Array<String>) {
                 && targetMappings.classEntries.none {
                     it.classNames[1] == legacyClassName
                 }) {
-            println("$targetClassName -> $legacyClassName")
-            targetClass.classNames[1] = legacyClassName
+            if (generatePolicy) {
+                policyWriter.add("$targetIntermediary # $targetClassName -> $legacyClassName")
+            } else if (!toKeep.contains(targetIntermediary.replace("net/minecraft/", ""))) {
+                println("$targetIntermediary: $targetClassName -> $legacyClassName")
+                targetClass.classNames[1] = legacyClassName
+            }
         }
         targetClass.fields.forEach fields@{ targetField ->
             val targetFieldIntermediary = targetField.fieldNames[0]
@@ -72,8 +94,12 @@ fun main(args: Array<String>) {
             if (targetFieldName != legacyFieldName && targetClass.fields.none {
                         it.fieldNames[1] == legacyFieldName
                     }) {
-                println("  $targetClassName.$targetFieldName -> $legacyClassName.$legacyFieldName")
-                targetField.fieldNames[1] = legacyFieldName
+                if (generatePolicy) {
+                    policyWriter.add("$targetFieldIntermediary # $targetClassName.$targetFieldName -> $legacyClassName.$legacyFieldName")
+                } else if (!toKeep.contains(targetFieldIntermediary)) {
+                    println("  $targetFieldIntermediary: $targetClassName.$targetFieldName -> $legacyClassName.$legacyFieldName")
+                    targetField.fieldNames[1] = legacyFieldName
+                }
             }
         }
         targetClass.methods.forEach methods@{ targetMethod ->
@@ -86,27 +112,44 @@ fun main(args: Array<String>) {
             if (targetMethodName != legacyMethodName && targetClass.methods.none {
                         it.methodNames[1] == legacyMethodName
                     }) {
-                println("  $targetClassName.$targetMethodName -> $legacyClassName.$legacyMethodName")
-                targetMethod.methodNames[1] = legacyMethodName
+                if (generatePolicy) {
+                    policyWriter.add("$targetMethodIntermediary # $targetClassName.$targetMethodName -> $legacyClassName.$legacyMethodName")
+                } else if (!toKeep.contains(targetMethodIntermediary)) {
+                    println("  $targetMethodIntermediary: $targetClassName.$targetMethodName -> $legacyClassName.$legacyMethodName")
+                    targetMethod.methodNames[1] = legacyMethodName
+                }
             }
         }
     }
 
-    println()
-    println("writing mappings")
-    val repackedPath = tmp.toPath().resolve("output.tiny")
-    TinyV2Writer.write(targetMappings, repackedPath)
+    if (!generatePolicy) {
+        println()
+        println("writing mappings")
+        val repackedPath = tmp.toPath().resolve("output.tiny")
+        TinyV2Writer.write(targetMappings, repackedPath)
 
-    println("repacking mappings")
-    val path = tmp.parentFile.toPath().resolve("build/libs/yarn-${targetVersion}+legacy.${legacyVersion}-v2.jar")
-    Files.deleteIfExists(path)
-    ZipOutputStream(path.toFile().outputStream()).use { zipOutputStream ->
-        val zipEntry = ZipEntry("mappings/mappings.tiny")
-        zipOutputStream.putNextEntry(zipEntry)
+        println("repacking mappings")
+        val path = tmp.parentFile.toPath().resolve("build/libs/yarn-${targetVersion}+legacy.${legacyVersion}-v2.jar")
+        Files.deleteIfExists(path)
+        ZipOutputStream(path.toFile().outputStream()).use { zipOutputStream ->
+            val zipEntry = ZipEntry("mappings/mappings.tiny")
+            zipOutputStream.putNextEntry(zipEntry)
 
-        val bytes = repackedPath.toFile().readBytes()
-        zipOutputStream.write(bytes, 0, bytes.size)
-        zipOutputStream.closeEntry()
+            val bytes = repackedPath.toFile().readBytes()
+            zipOutputStream.write(bytes, 0, bytes.size)
+            zipOutputStream.closeEntry()
+        }
+    } else {
+        val policyFile = File(args.drop(if (generatePolicy) 3 else 2).joinToString(" "))
+        policyFile.delete()
+        policyFile.parentFile.mkdirs()
+        policyFile.writeText(policyWriter.joinToString("\n"))
+        println("generated policy")
     }
     tmp.deleteRecursively()
+}
+
+private fun String.before(c: Char): String {
+    val indexOf = lastIndexOf(c)
+    return if (indexOf < 0) this else substring(indexOf + 1)
 }
