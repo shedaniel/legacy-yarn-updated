@@ -84,7 +84,7 @@ publishing {
     publications {
         MyPublication(MavenPublication) {
             artifact(file("${project.buildDir}/libs/yarn-${project.version}-v2.jar")) {
-                builtBy run
+                builtBy runWithPolicy
                 classifier = "v2"
             }
             groupId "me.shedaniel"

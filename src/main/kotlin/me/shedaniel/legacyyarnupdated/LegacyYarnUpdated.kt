@@ -25,7 +25,7 @@ fun main(args: Array<String>) {
     targetVersion = args[0]
     legacyVersion = args[1]
     generatePolicy = args.size >= 4 && args[2] == "generatePolicy"
-    if (args.size >= 4) {
+    if (args.size >= 3) {
         File(args.drop(if (generatePolicy) 3 else 2).joinToString(" ")).forEachLine { line ->
             val keep = line.before('#').trimEnd()
             if (!keep.isBlank()) {
