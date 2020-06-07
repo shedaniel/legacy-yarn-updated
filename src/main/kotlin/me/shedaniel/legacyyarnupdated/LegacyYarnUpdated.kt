@@ -24,9 +24,10 @@ var generatePolicy by Delegates.notNull<Boolean>()
 fun main(args: Array<String>) {
     targetVersion = args[0]
     legacyVersion = args[1]
-    generatePolicy = args.size >= 4 && args[2] == "generatePolicy"
-    if (args.size >= 3) {
-        File(args.drop(if (generatePolicy) 3 else 2).joinToString(" ")).forEachLine { line ->
+    val outputJar = File(args[2])
+    generatePolicy = args.size >= 5 && args[3] == "generatePolicy"
+    if (args.size >= 4) {
+        File(args.drop(if (generatePolicy) 4 else 3).joinToString(" ")).forEachLine { line ->
             val keep = line.before('#').trimEnd()
             if (!keep.isBlank()) {
                 if (!keepValidator(keep)) throw IllegalStateException("Invalid Line: $line")
@@ -129,7 +130,7 @@ fun main(args: Array<String>) {
         TinyV2Writer.write(targetMappings, repackedPath)
 
         println("repacking mappings")
-        val path = tmp.parentFile.toPath().resolve("build/libs/yarn-${targetVersion}+legacy.${legacyVersion}-v2.jar")
+        val path = outputJar.toPath()
         Files.deleteIfExists(path)
         ZipOutputStream(path.toFile().outputStream()).use { zipOutputStream ->
             val zipEntry = ZipEntry("mappings/mappings.tiny")

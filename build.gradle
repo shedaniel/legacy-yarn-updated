@@ -34,7 +34,7 @@ task run {
 
 task runWithPolicy {
     doLast {
-        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} ${file("keep.policy").getAbsolutePath()}".execute()
+        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} ${file("${project.buildDir}/libs/yarn-${project.version}-v2.jar").getAbsolutePath()} ${file("keep.policy").getAbsolutePath()}".execute()
         proc.in.eachLine { println(it) }
         proc.err.eachLine { println(it) }
     }
@@ -42,7 +42,7 @@ task runWithPolicy {
 
 task genPolicy {
     doLast {
-        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} generatePolicy ${file("keep.policy").getAbsolutePath()}".execute()
+        def proc = "java -jar build/libs/${archivesBaseName}-${version}.jar ${project.targetVersion} ${project.legacyVersion} ${file("${project.buildDir}/libs/yarn-${project.version}-v2.jar").getAbsolutePath()} generatePolicy ${file("keep.policy").getAbsolutePath()}".execute()
         proc.in.eachLine { println(it) }
         proc.err.eachLine { println(it) }
     }
