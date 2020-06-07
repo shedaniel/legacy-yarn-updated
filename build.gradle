@@ -10,7 +10,7 @@ plugins {
 sourceCompatibility = targetCompatibility = 1.8
 
 group "me.shedaniel"
-version = "${project.targetVersion}+legacy.${project.legacyVersion}"
+version = "${project.targetVersion}+legacy.${project.legacyVersion}" + project.extraFixes
 archivesBaseName = project.name
 
 repositories {
