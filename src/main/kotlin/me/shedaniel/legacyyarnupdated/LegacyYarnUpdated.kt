@@ -15,7 +15,7 @@ lateinit var targetVersion: String
 lateinit var legacyVersion: String
 
 val tmp = File(System.getProperty("user.dir"), ".legacyyarnupdated")
-val toKeep = mutableListOf<String>()
+val toKeep = mutableSetOf<String>()
 val policyWriter = mutableListOf<String>()
 val invalidCharacters = arrayOf(' ', '/', '<', ',', '.', '<', '>', ';', ';', '\'', '\"', '\\')
 val keepValidator: (String) -> Boolean = { it.none { it in invalidCharacters } }
@@ -29,9 +29,10 @@ fun main(args: Array<String>) {
     if (args.size >= 4) {
         File(args.drop(if (generatePolicy) 4 else 3).joinToString(" ")).forEachLine { line ->
             val keep = line.before('#').trimEnd()
-            if (!keep.isBlank()) {
+            if (keep.isNotBlank()) {
                 if (!keepValidator(keep)) throw IllegalStateException("Invalid Line: $line")
                 toKeep.add(keep)
+                println("Keeping: $keep")
                 if (generatePolicy) {
                     policyWriter.add(line)
                 }

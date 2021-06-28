@@ -24,7 +24,7 @@ dependencies {
 task runWithPolicy(type: JavaExec, dependsOn: build) {
     main "me.shedaniel.legacyyarnupdated.LegacyYarnUpdatedKt"
     classpath jar.archiveFile
-    args project.targetVersion, project.legacyVersion, file("${project.buildDir}/libs/yarn-${project.version}-v2.jar").absolutePath
+    args project.targetVersion, project.legacyVersion, file("${project.buildDir}/libs/yarn-${project.version}-v2.jar").absolutePath, file("keep.policy").absolutePath
 }
 
 task genPolicy(type: JavaExec, dependsOn: build) {
